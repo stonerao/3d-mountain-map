@@ -45,6 +45,7 @@ var faceShader = {
         uniform float height;
         uniform vec4 color;
         uniform vec4 colorEnd;
+        uniform float animat;
         varying vec4 vcolor;
         varying vec3 v_normal;
         varying float _y;
@@ -53,17 +54,18 @@ var faceShader = {
         }
         void main() { 
             // vcolor = colorEnd;
-            float y = position.y;
-            float l = position.y / height;
+            float y = abs(position.y);
+            float l = y / height;
             float r = lerp(colorEnd.r, color.r, l);
             float g = lerp(colorEnd.g, color.g, l);
             float b = lerp(colorEnd.b, color.b, l);
             float a = lerp(colorEnd.a, color.a, l);
             vcolor = vec4(r, g, b, a);
-            v_normal = normalMatrix * normal;
-            _y = position.y;
-            vec3 v_position = vec3(position.r, position.y * 1.0, position.z);
+            vec3 v_position = vec3(position.r, position.y * animat, position.z);
+            _y = v_position.y;
             vec4 mvPosition = modelViewMatrix * vec4(v_position, 1.0);
+            v_normal = _y == 0.0 ?vec3(.0,.0,.0) :normalMatrix * normal;
+             
             gl_Position = projectionMatrix * mvPosition;
         }
         `,
@@ -81,10 +83,49 @@ var faceShader = {
         void main() {
             vec3 normal = normalize(v_normal);
             float nDotL = max(dot(u_lightDirection, normal), 0.0);
-            vec3 diffuse = u_lightColor * vcolor.rgb * nDotL;
-            vec3 ambient = u_AmbientLight * vcolor.rgb;
-            vec3 gcolor = _y == 0.0 ? (ambient) : (diffuse + ambient);
+            vec4 dst_color =  _y == 0.0 ? colorEnd : vcolor;
+            vec3 diffuse = u_lightColor * dst_color.rgb * nDotL;
+            vec3 ambient = u_AmbientLight * dst_color.rgb;
+            vec3 gcolor = diffuse + ambient;
             gl_FragColor = vec4(gcolor, vcolor.a); ;
+        }`
+}
+
+var pointShader = {
+    vertexshader: ` 
+        uniform float size; 
+        uniform float time; 
+        uniform float y_time; 
+        attribute float u_index;
+        attribute vec2 u_nums;
+        uniform vec3 high;
+        uniform vec3 center;
+        uniform vec3 bottom;
+        varying vec3 v_color;
+        void main() {
+            float py = abs(sin((y_time - (time * u_index * 2.0))) * 50.0);
+            float y = position.y + py;
+            if (y < u_nums.y && y > u_nums.x) {
+                v_color = center;
+            } else if (y > u_nums.y) {
+                v_color = high;
+            } else {
+                v_color = bottom;
+            }
+             
+            vec3 u_position = vec3(position.x, y, position.z);
+            vec4 mvPosition = modelViewMatrix * vec4(u_position, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+            gl_PointSize = size* (1.0 - u_index / 10.0) * 300.0 / (-mvPosition.z);
+        }
+        `,
+    fragmentshader: `
+        uniform vec3 color;
+        uniform sampler2D texture;
+        varying vec3 v_color;
+        void main() {
+            float u_opacity = 1.0;
+            gl_FragColor = vec4(v_color, u_opacity) * texture2D(texture, vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y));
         }`
 }
 
