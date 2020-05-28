@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>template</title>
+	<script src="/libs/jquery.js"></script>
+	<script src="/libs/stats.min.js"></script>
+	<script src="/libs/three_r98.js"></script>
+	<script src="/libs/dat.gui.min.js"></script>
+	<script src="js/assetsControls.js"></script>
+
+	<script src="js/Initialize.js"></script>
+	<script src="js/Utils.js"></script>
+	<style type="text/css">
+		html {
+			width: 100%;
+			height: 100%;
+		}
+
+		body {
+			margin: 0;
+			background: #ffffff;
+			width: 100%;
+			height: 100%;
+		}
+
+		div#canvas-frame {
+			width: 100%;
+			height: 100%;
+			background: #1E1F22;
+			margin: 0;
+			position: relative;
+		}
+	</style>
+	<script>
+		var assetsUrl = './images/';
+		var config = {
+			stats: true, //是否显示左上角的性能监测  默认false
+			loading: true, //是否显示 loading ， 默认false
+			scene: {
+				offset: [0, 0, 0]
+			},
+			background: {
+				color: '#1E1F22',
+				opacity: 1.0,
+
+			}, //背景色和透明度
+			camera: {
+				position: [0, 450, 544]
+			}, //相机视角和位置
+			controls: { //控制器
+				enablePan: true,
+				enableZoom: true,
+				enableRotate: true,
+			},
+			txues: {
+
+			}
+
+
+		};
+
+		function start() {
+			var INT = new swiperInitialize();
+			INT.init('canvas-frame', config); //初始化
+			INT.render();
+
+			$.get('./data/data.json', {}, function (data) {
+				// console.log(data);
+				const chart = INT.createChart(data, {
+					width: 500,
+					zwidth: 500,
+					height: 400,
+					padding: 10
+				});
+				//  INT.scene.add(chart);
+			})
+			// return 
+			let datas = [
+				[],
+				[]
+			];
+			console.log(cdata);
+			// 维度
+			const xdata = [];
+			const names = [...new Set(cdata.map(x => x[0]))].map(x => ({
+				name: x,
+				val: []
+			}));
+			const ynames = [...new Set(cdata.map(x => x[1]))].map(x => ({
+				name: x,
+				val: []
+			}));
+			names.forEach((x, i) => {
+				const d = cdata.filter(y => y[0] == x.name);
+				x.val.push(...d)
+			});
+			console.log(names)
+			for (let x = 0; x < names.length; x++) {
+				for (let y = 0; y < names[x].val.length; y++) {
+					const d = names[x].val[y];
+					const findex = names.findIndex(n => n.name == d[1]);
+					if (findex != -1) {
+						names[x].val[y].push(findex);
+					}
+				}
+			}
+			var DATA = [];
+			var planeArr = [];
+			var pointArr = [];
+			var nums = [];
+			var ii = 0;
+			names.forEach((elem, i) => {
+				const _d = new Array(names.length).fill(Math.sin(Math.random()) * 10);
+				const _r = new Array(names.length).fill(Math.sin(Math.random()) * 10)
+				/* elem.val.forEach((y, _i) => {
+					// if (y[4] === undefined) return false;
+					_d[y[4]] = Math.sin(ii) * 10;
+					// _d[y[4]] =y[2];
+					_r[y[4]] = Math.sin(ii) * 10;
+					// _r[y[4]] = y[3];
+					nums.push(_d[y[4]], _r[y[4]])
+					ii += 0.1
+				});
+				planeArr.push(_d);
+				pointArr.push(_r); */
+				planeArr.push(_d);
+				pointArr.push(_r);
+				 nums.push(..._d , ..._r )
+				 
+			})
+			console.log(pointArr)
+			console.log(planeArr)
+			console.log(nums)
+			var max = Math.max.apply(null, nums);
+			var min = Math.min.apply(null, nums);
+			console.log(max)
+			// cdata.forEach((elem, index) => {
+			// 	if (elem[1] == )
+			// });
+
+			/* cdata.forEach((elem, i) => {
+				if (i>=16){return}
+				elem[2] = THREE.Math.randInt(-100, 250);
+				elem[3] = THREE.Math.randInt(0, 450);
+				datas[0].push([elem[0], elem[2]])
+				datas[1].push([elem[1], elem[3]])
+			}); */
+			INT.initChart(planeArr, pointArr, {
+				max,
+				min
+			});
+			/* console.log(cdata)
+			console.log(datas) */
+
+			var gui = new dat.GUI();
+			var parms = {
+				color: [255, 0, 0, 1],
+				colorEnd: [255, 255, 255, 1],
+				lineColor: [255, 255, 255, 0.2]
+			}
+			gui.addColor(parms, 'color', 0, 1, 0.01).onChange(function (elem) {
+				INT.setColor('color', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			})
+			gui.addColor(parms, 'colorEnd', 0, 1, 0.01).onChange(function (elem) {
+				INT.setColor('colorEnd', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			})
+
+			gui.addColor(parms, 'lineColor', 0, 1, 0.01).onChange(function (elem) {
+				INT.setColor('lineColor', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			})
+
+		}
+	</script>
+</head>
+
+<body onload="start();">
+	<div id="canvas-frame"></div>
+
+</body>
+
+</html>
