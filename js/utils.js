@@ -46,25 +46,30 @@ var faceShader = {
         uniform vec4 color;
         uniform vec4 colorEnd;
         uniform float animat;
+        uniform float select;
         varying vec4 vcolor;
+        uniform vec4 selectEnd;
+        uniform vec4 selectStart;
         varying vec3 v_normal;
         varying float _y;
+        attribute float u_index;
         float lerp(float x, float y, float t) {
             return (1.0 - t) * x + t * y;
         }
         void main() { 
-            // vcolor = colorEnd;
+            vec4 end = u_index == select ? selectEnd : colorEnd;
+            vec4 start = u_index == select ? selectStart : color;
             float y = abs(position.y);
             float l = y / height;
-            float r = lerp(colorEnd.r, color.r, l);
-            float g = lerp(colorEnd.g, color.g, l);
-            float b = lerp(colorEnd.b, color.b, l);
-            float a = lerp(colorEnd.a, color.a, l);
+            float r = lerp(end.r, start.r, l);
+            float g = lerp(end.g, start.g, l);
+            float b = lerp(end.b, start.b, l);
+            float a = lerp(end.a, start.a, l);
             vcolor = vec4(r, g, b, a);
             vec3 v_position = vec3(position.r, position.y * animat, position.z);
             _y = v_position.y;
-            vec4 mvPosition = modelViewMatrix * vec4(v_position, 1.0);
-            v_normal = _y == 0.0 ?vec3(.0,.0,.0) :normalMatrix * normal;
+            vec4 mvPosition = modelViewMatrix * vec4(v_position, 1.0); 
+            v_normal = _y == 0.0 ? vec3(.0,.0,.0) :normalMatrix * normal;
              
             gl_Position = projectionMatrix * mvPosition;
         }
@@ -73,11 +78,11 @@ var faceShader = {
         uniform float time;
         uniform vec4 color;
         uniform vec4 colorEnd;
-        varying vec4 vcolor;
         uniform vec3 u_lightDirection;
         uniform vec3 u_lightColor;
         uniform vec3 u_AmbientLight;
         uniform vec4 u_highColor;
+        varying vec4 vcolor;
         varying vec3 v_normal;
         varying float _y;
         void main() {
@@ -98,13 +103,14 @@ var pointShader = {
         uniform float y_time; 
         attribute float u_index;
         attribute vec2 u_nums;
+        attribute float u_time;
         uniform vec3 high;
         uniform vec3 center;
         uniform vec3 bottom;
         varying vec3 v_color;
         void main() {
-            float py = abs(sin((y_time - (time * u_index * 2.0))) * 50.0);
-            float y = position.y + py;
+            float py = abs(sin((y_time - (time * u_index * size / 8.0)) + u_time)) * 1.3;
+            float y = position.y * py;
             if (y < u_nums.y && y > u_nums.x) {
                 v_color = center;
             } else if (y > u_nums.y) {
@@ -132,37 +138,37 @@ var pointShader = {
 // 假数据
 
 const cdata = [ 
-    ['保险', '保险', 20, 0],
-    ['保险资管', '保险资管', 33, 0],
-    ['城商行', '城商行', 0, 0],
-    ['大型银行', '大型银行', 0, 0],
-    ['公募资金', '公募资金', 20, 50],
+    ['保险', '保险', 10, 150],
+    ['保险资管', '保险资管', 20, 120],
+    ['城商行', '城商行', 80, 120],
+    ['大型银行', '大型银行', -20, 80],
+    ['公募资金', '公募资金', 40, 50],
     ['股份制', '股份制', 20, 50],
     ['境外产品', '境外产品', 20, 50],
-    ['境外法人', '境外法人', 20, 50],
+    ['境外法人', '境外法人', 0, 50],
     ['农村及民营银行', '农村及民营银行', 20, 50],
     ['其他非银法人', '其他非银法人', 20, 50],
-    ['其他金融机构', '其他金融机构', 20, 50],
+    ['其他金融机构', '其他金融机构', 40, 80],
     ['私募资管', '私募资管', 20, 50],
     ['外资行', '外资行', 20, 50],
-    ['银行理财', '银行理财', 20, 60],
-    ['证券公司', '证券公司', 20, 30],
-    ['政策性行', '政策性行', 20, 50],
+    ['银行理财', '银行理财', 40, 60],
+    ['证券公司', '证券公司', 20, 80],
+    ['政策性行', '政策性行', 40, 50],
     ['其他非银法人', '保险资管', 20, 110],
     ['其他金融机构', '城商行', 12, 50],
-    ['私募资管', '大型银行', 120, 50],
+    ['私募资管', '大型银行', 120, 80],
     ['外资行', '公募资金', 20, 50],
-    ['银行理财', '股份制', 20, 50],
+    ['银行理财', '股份制', 3, 50],
     ['证券公司', '境外产品', 20, 100],
-    ['政策性行', '公募资金', 20, 50],
+    ['政策性行', '公募资金', 20, 80],
     ['政策性行', '股份制', 20, 50],
-    ['其他非银法人', '境外产品', 20, 50],
-    ['其他金融机构', '境外法人', 20, 50],
-    ['私募资管', '农村及民营银行', 20, 50],
+    ['其他非银法人', '境外产品', 40, 50],
+    ['其他金融机构', '境外法人', 20, 80],
+    ['私募资管', '农村及民营银行', 20, 80],
     ['外资行', '其他非银法人', 20, 60],
-    ['保险', '其他金融机构', 20, 50],
-    ['保险资管', '私募资管', 120, 50],
+    ['保险', '其他金融机构', -20, 80],
+    ['保险资管', '私募资管', -120, 80],
     ['城商行', '外资行', 20, 50],
-    ['大型银行', '银行理财', -0, 50],
+    ['大型银行', '银行理财', 0, 80],
     ['公募资金', '证券公司', 100, 50] 
 ]

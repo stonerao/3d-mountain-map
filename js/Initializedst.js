@@ -200,7 +200,9 @@ var swiperInitialize = function () {
 	// 变量
 	const width = 500;
 	const zwidth = 500;
-	const height = 100;
+	const height = 300;
+	const rayMeshs = [];
+	let faceindex = [];
 	let len = 10;
 	function init3DMesh(opts) {
 		/* var helper = new THREE.GridHelper(400, 20, 0x43908D, 0x3A3B3B);
@@ -351,10 +353,11 @@ var swiperInitialize = function () {
 		return group;
 	}
 
-	thm.initChart = (plane, points, opts) => {
-		const { min, max } = opts;
+	thm.initChart = (plane, points, opts, axios) => {
 		const _planeVec = getData(plane, opts);
 		const _pointVec = getData(points, opts);
+		const _textVecsL = getTextData(axios, 'left');
+		const _textVecsT = getTextData(axios, 'top');
 		// 找到两组数据中最大与最小
 		
 		 /* data.map((x, i) => { 
@@ -363,15 +366,14 @@ var swiperInitialize = function () {
 		}); */
 		/* console.log(data)*/
 		thm.planemesh = createPlane(_planeVec, opts, plane);
-		thm.pointMesh = createPoint(_pointVec, opts, points); 
-		thm.planemesh.position.y += 1;
-		thm.pointMesh.position.y += 1;
+		thm.pointMesh = createPoint(_pointVec, opts, points);
+		thm.textureMeshL = createTexts(axios, _textVecsL, 'left'); 
+		thm.textureMeshT = createTexts(axios, _textVecsT, 'top'); 
 
-		thm.planemesh.position.z += len / 2;
-		thm.pointMesh.position.z += len / 2;
-		thm.planemesh.position.x += len / 2;
-		thm.pointMesh.position.x += len / 2;
-		thm.scene.add(thm.planemesh, thm.pointMesh);
+		thm.planemesh.position.set(len / 2, 1, len / 2);
+		thm.pointMesh.position.set(len / 2, 1, len / 2);
+
+		thm.scene.add(thm.planemesh, thm.pointMesh, thm.textureMeshL, thm.textureMeshT);
 	}
 	// 处理数据
 	function getData(data, opts) {
@@ -403,6 +405,20 @@ var swiperInitialize = function () {
 			isData.push(_isd);
 		} 
 		return arr;
+	}
+	// 获取文字标签的位置
+	function getTextData(axios, pvs) {
+		const size = zwidth / axios.length;
+		const zsize = width / axios.length;
+		const position = [];
+		axios.forEach((elem, i) => {
+			if (pvs === 'top') {
+				position.push(new THREE.Vector3(size * (i + 0.5) - width / 2, 0, zwidth / -2));
+			} else {
+				position.push(new THREE.Vector3(width / -2, 0, zsize * (i + 0.5) - zwidth / 2));
+			}
+		});
+		return position;
 	}
 	function diffData(data, len, index) {
 		let max = 0;
@@ -436,6 +452,8 @@ var swiperInitialize = function () {
 		const _lines = [];
 		const point = []; 
 		const level = 1;
+		faceindex = [];
+		let _tindex = 0;
 		for (let i = 0; i < data.length; i++) {
 			const x = data[i];
 			for (let _i = 0; _i < x.length; _i++) {
@@ -520,54 +538,22 @@ var swiperInitialize = function () {
 						 faces.push(b2, _b2, _b1);
 						//   faces.push(_t1, _t2, t1);
 					}
-				}
+				} 
+				
 				faces.forEach((e) => {
-					_surfaces.push(...gf(e))
-				})
+					faceindex.push(_tindex);
+					_surfaces.push(...gf(e));
+				}) 	
+			 	_tindex+=4; 
+				console.log(_tindex)
 			}
 		}
-		/* for (let i = 0; i < data.length; i++) {
-			const x = data[i];
-			for (let _i = 0; _i < x.length; _i++) {
-				const y = x[_i];
-				if (data[i + 1] && x[_i + 1] && data[i][_i + 1]) {
-					const _c = Utils.getValues(y); // 当前
-					const _cnext = Utils.getValues(x[_i + 1]); // 当前行 下一个
-					const _ccnext = Utils.getValues(data[i + 1][_i]); // 下一列的当前索引
-					const _crnext = Utils.getValues(data[i + 1][_i + 1]); // 下一列的下一个
-					// _surfaces.push(..._c, ..._cnext, ..._ccnext);
-					// _surfaces.push(..._cnext, ..._crnext,  ..._ccnext);
-					const center = y.clone().lerp(data[i + 1][_i + 1], 0.5);
-					// point.push(...gf(center));
- 			
-					 _surfaces.push(...gf(center), ...gf(_c),  ...gf(_cnext));
-				 	_surfaces.push(...gf(center), ...gf(_cnext),  ...gf(_crnext));
-					 _surfaces.push(...gf(center), ...gf(_crnext),  ...gf(_ccnext));
-					 _surfaces.push(...gf(center), ...gf(_ccnext),  ...gf(_c));
-
-
-					 _lines.push(...gf(center), ...gf(_c)); 
-					 _lines.push(...gf(_cnext), ...gf(_c)); 
-					 _lines.push(...gf(_cnext), ...gf(center)); 
-					 
-					 _lines.push(...gf(center), ...gf(_cnext)); 
-					 _lines.push(...gf(_crnext), ...gf(_cnext)); 
-					 _lines.push(...gf(_crnext), ...gf(center)); 
-
-					 _lines.push(...gf(center), ...gf(_crnext)); 
-					 _lines.push(...gf(_ccnext), ...gf(_crnext)); 
-					 _lines.push(...gf(_ccnext), ...gf(center)); 
-
-					 _lines.push(...gf(center), ...gf(_ccnext)); 
-					 _lines.push(...gf(_c), ...gf(_ccnext)); 
-					 _lines.push(...gf(_c), ...gf(center));   
-				 
-				}
-			}
-		} */
+		
 		// 面
 		const cStart = Utils.getColorArr('rgba(255,0,0,1)');
 		const cEnd = Utils.getColorArr('rgba(255,212,212,1)');
+		const selectStart = Utils.getColorArr('rgba(44,123,21,1)');
+		const selectEnd = Utils.getColorArr('rgba(123,144,25,1)');
 		const faceGeo = new THREE.BufferGeometry();
 	 
 		const faceMat = new THREE.ShaderMaterial({
@@ -576,7 +562,10 @@ var swiperInitialize = function () {
 				animat: { value: 0.1 },
 				color: { value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1]) },
 				colorEnd: { value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1]) },
+				selectStart: { value: new THREE.Vector4(...Utils.getValues(selectStart[0]), selectStart[1]) },
+				selectEnd: { value: new THREE.Vector4(...Utils.getValues(selectEnd[0]), selectEnd[1]) },
 				height: { value: height },
+				select: { value: -1.0 },
 				// ...THREE.UniformsLib.lights
 				u_lightDirection: { value: new THREE.Vector3(1.0, 0.0, 0.0).normalize() }, // 关照角度
 				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
@@ -593,10 +582,15 @@ var swiperInitialize = function () {
 	
 
 		faceGeo.addAttribute("position", new THREE.Float32BufferAttribute(_surfaces, 3));
+		faceGeo.addAttribute("u_index", new THREE.Float32BufferAttribute(faceindex, 1));
+		console.log(faceGeo)
+		console.log(faceindex)
 		faceGeo.computeVertexNormals();
 		const face = new THREE.Mesh(faceGeo, faceMat);
 		face._isAnimate = false;
-		thm.faceMesh1 = face
+		thm.faceMesh1 = face;
+		rayMeshs.push(face);
+		face.name = 'face';
 		group.add(face)
 		// line
 		const lineGeo = new THREE.BufferGeometry();
@@ -773,16 +767,18 @@ var swiperInitialize = function () {
 		const indexs = [];
 		const size = 10;
 		const nums = [];
-		console.log(ydata)
+		const times = [];
 		data.forEach((elem) => {
 			elem.forEach((_elem) => {
 				const vec = _elem.clone();
-				if (vec.y ==0 )return false
+				if (vec.y ==0 )return false;
+				const n = Math.random() * 2;
 				for(let i=0;i<10;i++) {
 					position.push(...Utils.getValues(vec));
 					 
 					indexs.push(i);
-					nums.push(vec.y+10, vec.y+40)
+					nums.push(vec.y , vec.y + 40);
+					times.push(n)
 				}
 				// position.push(...Utils.getValues(_elem));
 				// position.push(...Utils.getValues(_elem));
@@ -797,6 +793,7 @@ var swiperInitialize = function () {
 		pointGeo.addAttribute("position", new THREE.Float32BufferAttribute(position, 3));
 		pointGeo.addAttribute("u_index", new THREE.Float32BufferAttribute(indexs, 1));
 		pointGeo.addAttribute("u_nums", new THREE.Float32BufferAttribute(nums, 2));
+		pointGeo.addAttribute("u_time", new THREE.Float32BufferAttribute(times, 1));
 		const texture = new THREE.TextureLoader().load('./images/p3.png');
 		var pMat = new THREE.ShaderMaterial({
 			uniforms: {
@@ -813,17 +810,13 @@ var swiperInitialize = function () {
 				// num: {value: new THREE.Vector2()}
 			},
 			transparent:true,
+			// depthWrite:false,
 			blending:THREE.AdditiveBlending,
 			vertexShader: pointShader.vertexshader,
             fragmentShader: pointShader.fragmentshader
 		});
-	/* 	var pMat = new THREE.PointsMaterial({
-			color: 0xFFFFFF,
-			size: size
-		}); */
 		var starField = new THREE.Points(pointGeo, pMat);
-		// starField.position.y += size / 4;
-	 	// group.add(starField);
+		starField.renderOrder = 99;
 		return starField
 	}
 	thm.setColor = (name, val) => {
@@ -849,9 +842,67 @@ var swiperInitialize = function () {
 				thm.lineMesh.material.color = colorArr[0];
 				thm.lineMesh.material.opacity = colorArr[1];
 			}
-			break;
-			break;
+			break; 
+			case 'pointSize':
+			{ 
+				thm.pointMesh.material.uniforms.size.value = val; 
+			}
+			break; 
 		}
+	}
+	function createTexts(axios,  position, site) {
+		const group = new THREE.Group();
+		axios.forEach((elem, i) => {
+			const _vec = position[i];
+			const map = createText({
+				text: elem.name,
+				fontSize: 48
+			});
+			const w = map.image.width / 4;
+			const h = map.image.height / 4;
+			 
+			const geometry = new THREE.PlaneGeometry( w, h, 1 );
+			const material = new THREE.MeshBasicMaterial( {
+				color: 0xffffff, 
+				side: THREE.DoubleSide,
+			  	map: map,
+				transparent: true
+			});
+			const plane = new THREE.Mesh( geometry, material );
+			if (site === 'left') {
+				_vec.x -= w / 2 + 10; 
+				plane.position.copy(_vec);
+				 plane.rotation.x -=Math.PI/2
+			} else {
+				_vec.z -= h / 2 + w/2;
+				plane.position.copy(_vec);
+				plane.rotation.x = -Math.PI / 2
+				plane.rotation.z = Math.PI / 2
+			 
+			}
+			//
+			group.add( plane );
+		})
+		return group;
+	}
+	// 生成文字标签纹理
+	function createText(opts) {
+		const { text, fontSize } = opts;
+		const textLen = text.length;
+		const width = (fontSize + 2) * textLen;
+		const height = fontSize + 10;
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		const ctx = canvas.getContext("2d");
+		ctx.font = fontSize + "px 微软雅黑";
+		ctx.fillStyle = "#fff";
+		ctx.textAlign = "left";
+		const ws = ctx.measureText(text).width;
+		ctx.fillText(text, (width - ws) / 2, height / 2 + fontSize / 2);
+		const textur = new THREE.Texture(canvas);
+		textur.needsUpdate = true;
+		return textur;
 	}
 	function createFloor(opts) {
 		// 
@@ -919,7 +970,7 @@ var swiperInitialize = function () {
 			}
 		}
 		if (thm.pointMesh) {
-			const t = dt * 1.0;
+			const t = dt * 0.3;
 			time += t ;
 			thm.pointMesh.material.uniforms.time.value = t;
 			thm.pointMesh.material.uniforms.y_time.value = time;
@@ -945,22 +996,24 @@ var swiperInitialize = function () {
 			df_Mouse.x = (event.layerX / df_Width) * 2 - 1;
 			df_Mouse.y = -(event.layerY / df_Height) * 2 + 1;
 			df_Raycaster.setFromCamera(df_Mouse, thm.camera);
-
-			//df_Intersects = df_Raycaster.intersectObject( gusMesh );
-			/*
-			if ( df_Intersects.length > 0 ) {
-			thm.container[0].style.cursor = 'pointer';
-
-			} else {
-			removeTips();
-			thm.container[0].style.cursor = 'auto';
-			}
-			 */
 		}
 	}
 
 	function onDocumentMouseDown(event) {
 		event.preventDefault();
+		df_Mouse.x = (event.layerX / df_Width) * 2 - 1;
+		df_Mouse.y = -(event.layerY / df_Height) * 2 + 1;
+		df_Raycaster.setFromCamera(df_Mouse, thm.camera);
+		var intersects = df_Raycaster.intersectObjects(rayMeshs); 
+		if (intersects.length != 0 && event.buttons == 1) {
+			
+			const object = intersects[0].object;
+			if (object.name == 'face') {
+				const i = faceindex[intersects[0].faceIndex];
+				const index = intersects[0].faceIndex;
+				object.material.uniforms.select.value = index - (index % 4); 
+			}
+		} else {}
 
 	}
 
