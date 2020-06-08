@@ -198,33 +198,19 @@ var swiperInitialize = function () {
 		thm.renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
 	}
 	// 变量
-	const width = 500;
-	const zwidth = 500;
-	const height = 100;
+	const width = 1200;
+	const zwidth = 1200;
+	const height = 300;
 	const rayMeshs = [];
-	const pointMax = 20;
-	let pointVals = [];
 	let faceindex = [];
-	let threshold = { hight: 200, low: 100 };
 	let len = 10;
-	let df_opts = {
-		color: [], // 颜色
-		line: {
-			color: '' 
-		},
-		point: {
-			hightColor: '',
-			baseColor: '',
-			lowColor: ''
-		}
-	};
 	function init3DMesh(opts) {
 		/* var helper = new THREE.GridHelper(400, 20, 0x43908D, 0x3A3B3B);
 		thm.scene.add(helper); */
 		const floor = createFloor({
 			width,
 			zwidth,
-			height:  height * 4
+			height
 		});
 		thm.scene.add(floor);
 
@@ -330,7 +316,7 @@ var swiperInitialize = function () {
 				color: { value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1]) },
 				colorEnd: { value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1]) },
 				height: { value: height },
-				u_lightDirection: { value: new THREE.Vector3(1.0, 1.0, 1.0).normalize() }, // 关照角度
+				u_lightDirection: { value: new THREE.Vector3(1.0, 1.0, 0.5).normalize() }, // 关照角度
 				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
 				u_AmbientLight: { value: new THREE.Color('#eeeeee') }, // 全局光颜色
 				
@@ -360,7 +346,7 @@ var swiperInitialize = function () {
 		} );
 		const line = new THREE.LineSegments( lineGeo, lineMat );
 		thm.lineMesh = line;
-		// thm.lineMesh.position.y += 0.2
+		thm.lineMesh.position.y += 0.2
 		group.add(line);
 
 
@@ -368,14 +354,10 @@ var swiperInitialize = function () {
 	}
 
 	thm.initChart = (plane, points, opts, axios) => {
-		const { max, min } = opts;
 		const _planeVec = getData(plane, opts);
-		const _pointVec = getData(points, {
-			...opts
-		});
+		const _pointVec = getData(points, opts);
 		const _textVecsL = getTextData(axios, 'left');
 		const _textVecsT = getTextData(axios, 'top');
-	 	
 		// 找到两组数据中最大与最小
 		
 		 /* data.map((x, i) => { 
@@ -383,45 +365,20 @@ var swiperInitialize = function () {
 			return _data;
 		}); */
 		/* console.log(data)*/
-		// 计算阈值高低
-		const _height = height / max * min;
-		const _threshold = opts.threshold;
-		const baseHeight= 200;
-		threshold.low = _threshold[0];
-		threshold.hight = _threshold[1];
 		thm.planemesh = createPlane(_planeVec, opts, plane);
-		thm.pointMesh = createPoint(_pointVec, {
-			...opts,
-			baseHeight: baseHeight
-		}, points);
-		const PointUser = thm.pointMesh.userData;
-		console.log(PointUser)
-		thm.SpriteMesh = createPointSprite(_pointVec, {
-			...opts,
-			baseHeight: baseHeight,
-			dtime: PointUser.dtime,
-			sizes: PointUser.sizes,
-		}, points);
-		console.log(thm.SpriteMesh.children.length);
+		thm.pointMesh = createPoint(_pointVec, opts, points);
 		thm.textureMeshL = createTexts(axios, _textVecsL, 'left'); 
 		thm.textureMeshT = createTexts(axios, _textVecsT, 'top'); 
-		thm.CordonMesh = createThreshold(threshold, {
-			...opts,
-			baseHeight: baseHeight
-		});
-
 
 		thm.planemesh.position.set(len / 2, 1, len / 2);
-		thm.pointMesh.position.set(len / 2, 1, len / 2); 
-		thm.SpriteMesh.position.set(len / 2, 20, len / 2); 
+		thm.pointMesh.position.set(len / 2, 1, len / 2);
 
 		thm.scene.add(thm.planemesh, thm.pointMesh, thm.textureMeshL, thm.textureMeshT);
-		thm.scene.add(thm.CordonMesh, thm.SpriteMesh);
 	}
 	// 处理数据
 	function getData(data, opts) {
 		const original = new THREE.Vector3(-width/2, 0, -zwidth/2);
-		const { min, max, baseHeight = 0 } = opts;
+		const { min, max } = opts;
 		const xlen = data.length;
 		const arr = [];
 		const isData = [];
@@ -437,10 +394,12 @@ var swiperInitialize = function () {
 				const _x = THREE.Math.lerp(0, width, y / ylen);
 				const val = elem[y] || 0;
 				
-				const _y = THREE.Math.lerp(0, height, val / height) * (height / max) - baseHeight;
+				const _y = THREE.Math.lerp(0, height, val / height) * (height / max);
 				const v = new THREE.Vector3(_x, _y, _z);
 				d.push(v.clone().add(original));
-				_isd.push(elem[y] == null ? 0 : 1); 
+				_isd.push(elem[y] == null ? 0 : 1);
+
+			 
 			}
 			arr.push(d);
 			isData.push(_isd);
@@ -485,340 +444,165 @@ var swiperInitialize = function () {
 	function gf (v3) {
 		return Utils.getValues(v3);
 	}
-	function getFaceParms(planeData, opts) {
-		const data = getData(planeData, opts);
-		const { max, min } = opts; 
-		const _surfaces = [];
-		const _lines = [];
-		const point = []; 
-		const level = 1;
-		faceindex = [];
-		let _tindex = 0;
-		const allPoints = [];
-		const y = height / max * min * 0.9;
-		for (let i = 0; i < data.length; i++) {
-			const x = data[i];
-			const arr = [];
-			allPoints.push(arr);
-			for (let _i = 0; _i < x.length; _i++) {
-				const _vecs = [];
-				arr.push(_vecs);
-				const elem = x[_i];
-				  
-				const n = len / 2;
-				const top1 = new THREE.Vector3(elem.x - n, y, elem.z - n);
-				const top2 = new THREE.Vector3(elem.x + n, y, elem.z - n);
-				const bottom1 = new THREE.Vector3(elem.x - n, y, elem.z + n);
-				const bottom2 = new THREE.Vector3(elem.x + n, y, elem.z + n);
-				_vecs.push(elem, top1, top2, bottom1, bottom2);
-			}
-		}
-		for (let i = 0; i < allPoints.length; i++) {
-			const elem = allPoints[i]; 
-			const bottom = allPoints[i  + 1] ; // 下
-			
-			for (let x = 0; x < elem.length; x++) {
-				const curr = elem[x];
-				const faces = [];
-				const cnext = elem[x + 1]; // 右侧 
-				if (i == 0 && cnext ) {
-					const _bt1 = curr[1].clone();
-					const _bt2 = curr[2].clone();
-					_bt1.y = 0;
-					_bt2.y = 0;
-				 	faces.push([cnext[0], curr[0], _bt1]);
-				 	faces.push([cnext[0], _bt1, _bt2]); 
-				}
-				if (i == allPoints.length - 1 && cnext ) {
-					const _bt1 = curr[3].clone();
-					const _bt2 = curr[4].clone();
-					_bt1.y = 0;
-					_bt2.y = 0;
-				 	faces.push([cnext[0], curr[0], _bt1]);
-				 	faces.push([cnext[0], _bt1, _bt2]); 
-				}
-				if (x == 0 && cnext ) {
-					const _bt1 = curr[1].clone();
-					const _bt2 = curr[3].clone();
-					_bt1.y = 0;
-					_bt2.y = 0;
-				  
-				}
-				/* faces.push([curr[1], curr[2], curr[0]]);
-				faces.push([curr[1], curr[3], curr[0]]);
-				faces.push([curr[3], curr[4], curr[0]]);
-				faces.push([curr[2], curr[4], curr[0]]);   */
-
-				if (bottom && curr[0].y !=0 && bottom[x][0].y != 0) {
-				 	/*  if (bottom[x][0].y !==0 ) {
-						faces.push([curr[0], bottom[x][0], curr[3]]);
-						faces.push([curr[0], bottom[x][0], curr[4]]); 
-					}  */
-					_lines.push(...gf(curr[0]),...gf(bottom[x][0])); 
-					if (bottom[x + 1] && bottom[x + 1][0].y !==0 ) {
-						faces.push([curr[0], bottom[x][0], bottom[x + 1][0]]);
-						// faces.push([curr[0],  bottom[x + 1][0], curr[4]]); 
-						
-					}
-
-				}  
-				
-			 	if (cnext && curr[0].y !=0 && cnext[0].y != 0) {
-					if (cnext[0].y !==0 ) {
-					  	//  faces.push([curr[0], cnext[0], curr[2]]); 
-				  		//  faces.push([curr[0], cnext[0], curr[4]]); 
-					  	_lines.push(...gf(curr[0]),...gf(cnext[0]));  
-						if (bottom&&bottom[x + 1] && bottom[x + 1][0].y !==0 ) {
-							faces.push([ bottom[x + 1][0], cnext[0],curr[0]]); 
-						}
-					}
-				} 
-			 	  
-				faces.forEach((elem) => {
-					elem.forEach(e=>{
-						_surfaces.push(...gf(e));
-						faceindex.push(_tindex);
-					})
-					_tindex+=elem.length;
-				}); 
-			}
-		}
-		 
-		return {
-			position: _surfaces,
-			line: _lines,
-			faceindex: faceindex
-		}
-	}
 	function createPlane(data, opts) {
 		const group = new THREE.Group();
-		const { max, min } = opts;
+		const { max } = opts;
+		
 		const _surfaces = [];
 		const _lines = [];
 		const point = []; 
-		pointVals = []; 
 		const level = 1;
 		faceindex = [];
 		let _tindex = 0;
-		const allPoints = [];
-		const y = height / max * min * 0;
 		for (let i = 0; i < data.length; i++) {
 			const x = data[i];
-			const arr = [];
-			allPoints.push(arr);
 			for (let _i = 0; _i < x.length; _i++) {
-				const _vecs = [];
-				arr.push(_vecs);
 				const elem = x[_i];
 				let y1 = 0;
 				let y2 = 0;
 				let y3 = 0;
 				let y4 = 0;
-				if (data[i - 1] && data[i - 1][_i - 1]) {
+			 	if (data[i - 1] && data[i - 1][_i-1]) {
 					y1 = data[i - 1][_i - 1].y;
-				}
-				if (data[i + 1] && data[i + 1][_i + 1]) {
-					y2 = elem.y;
-				}
-				if (data[i + 1] && x[_i - 1]) {
-					y3 = x[_i - 1].y;
-				}
-				if (data[i - 1] && data[i - 1][_i]) {
-					y4 = data[i - 1][_i].y;
-				}
+				}  
+			 	if (data[i + 1] && data[i + 1][_i + 1]) {
+					y2 =  elem.y;
+				}  
+			 	if (data[i + 1] && x[_i - 1]) {
+					y3 =  x[_i - 1].y;
+				}  
+			 	if (data[i - 1] && data[i - 1][_i]) {
+					y4 =  data[i - 1][_i].y;
+				}   
 				const n = len / 2;
-				const top1 = new THREE.Vector3(elem.x - n, y, elem.z - n);
-				const top2 = new THREE.Vector3(elem.x + n, y, elem.z - n);
-				const bottom1 = new THREE.Vector3(elem.x - n, y, elem.z + n);
-				const bottom2 = new THREE.Vector3(elem.x + n, y, elem.z + n);
-				_vecs.push(elem, top1, top2, bottom1, bottom2);
-				point.push(elem); // 点位置
-				// console.log(elem)
-				pointVals.push(0); // 点效果值
-			}
-		}
-		const lineVec = [];
-		for (let i = 0; i < allPoints.length; i++) {
-			const elem = allPoints[i];
-			const top = allPoints[i - 1]; // 上
-			const bottom = allPoints[i + 1]; // 下
-			for (let x = 0; x < elem.length; x++) {
-				const curr = elem[x];
+				const top1 = new THREE.Vector3(elem.x - n, 0, elem.z - n);
+				const top2 = new THREE.Vector3(elem.x + n, 0, elem.z - n);
+				const bottom1 = new THREE.Vector3(elem.x - n, 0, elem.z + n);
+				const bottom2 = new THREE.Vector3(elem.x + n, 0, elem.z + n);
+				// const top = new THREE.Vector3(elem.x, y, elem.z - (len / 2));
+				point.push(...gf(top1),...gf(top2))
+				point.push(...gf(bottom1),...gf(bottom2))
+
+
+				_lines.push(...gf(top1),...gf(elem)); 
+				_lines.push(...gf(top2),...gf(elem)); 
+				_lines.push(...gf(bottom1),...gf(elem)); 
+				_lines.push(...gf(bottom2),...gf(elem)); 
+				_lines.push(...gf(top1),...gf(top2)); 
+				_lines.push(...gf(top2),...gf(bottom1)); 
+				_lines.push(...gf(bottom1),...gf(bottom2)); 
+				_lines.push(...gf(bottom2),...gf(top1)); 
+
 				const faces = [];
-				const cnext = elem[x + 1]; // 右侧
-				const cprv = elem[x - 1]; // 左侧
+				// 
+				for(let _k = 1; _k <= level; _k++){
+					const tk = _k / level;
+					const t1 = elem.clone().lerp(top1, tk);
+					const t2 = elem.clone().lerp(top2, tk);
 
+					const l1 = elem.clone().lerp(top1, tk);
+					const l2 = elem.clone().lerp(bottom1, tk);
 
-				faces.push([curr[1], curr[2], curr[0]]);
-				faces.push([curr[1], curr[3], curr[0]]);
-				faces.push([curr[0], curr[3], curr[4]]);
-				faces.push([curr[2], curr[4], curr[0]]);
+					const b1 = elem.clone().lerp(bottom1, tk);
+					const b2 = elem.clone().lerp(bottom2, tk);
 
-				if (!top) {
-					/* 	curr[1].y = curr[0].y;
-						curr[2].y = curr[0].y; */
-					// const c1 = Utils.getVecCenter(curr[1], curr[2]);
-					// _lines.push(...gf(curr[0]), ...gf(c1)); 
-				}
-				// if (x === 0) {
-				// 	const c1 = Utils.getVecCenter(curr[1], curr[3]);
-				// 	_lines.push(...gf(curr[0]), ...gf(c1)); 
-				// }
-				if (bottom && curr[0].y != 0 && bottom[x][0].y != 0) {
-					// _lines.push(...gf(curr[0]), ...gf(bottom[x][0])); 
-					const c2 = Utils.getVecCenter(bottom[x][0], curr[0]);
-					lineVec.push([curr[0], bottom[x][0]]);
-					if (bottom[x][0].y !== 0) {
-						faces.push([curr[0], curr[3], bottom[x][0]]);
-						faces.push([curr[0], curr[4], bottom[x][0]]);
-					 
-						faces.push([curr[0], curr[3], c2]); 
-						faces.push([c2, curr[3],bottom[x][0]]);  
- 					 
+					const r1 = elem.clone().lerp(bottom2, tk);
+					const r2 = elem.clone().lerp(top2, tk);
 
+					if (_k == 1) {
+						faces.push(t1, t2, elem);
+						faces.push(l1, l2, elem);
+						faces.push(b1, b2, elem);
+						faces.push(r1, r2, elem);
+					} else  {
+						const ttk = (_k - 1 )/ level
+						const _t1 = elem.clone().lerp(top1, ttk);
+						const _t2 = elem.clone().lerp(top2, ttk);
+						const _l1 = elem.clone().lerp(top1, ttk);
+						const _l2 = elem.clone().lerp(bottom1,ttk);
+						const _b1 = elem.clone().lerp(bottom1,ttk);
+						const _b2 = elem.clone().lerp(bottom2,ttk);
+						const _r1 = elem.clone().lerp(bottom2,ttk);
+						const _r2 = elem.clone().lerp(top2,ttk);
+
+						 faces.push(t1, t2, _t1);
+						 faces.push(t2, _t2, _t1);
+
+						 faces.push(l1, l2, _l1);
+						 faces.push(l2, _l2, _l1);
+
+						 faces.push(r1, r2, _r1);
+						 faces.push(r2, _r2, _r1);
+
+						 faces.push(b1, b2, _b1);
+						 faces.push(b2, _b2, _b1);
+						//   faces.push(_t1, _t2, t1);
 					}
-					if (bottom[x + 1] && bottom[x + 1][0].y !== 0) {
-						faces.push([curr[0], bottom[x + 1][0], bottom[x][0]]);
-						faces.push([curr[0], bottom[x + 1][0], curr[4], ]);
-
-						const c1 = Utils.getVecCenter(bottom[x + 1][0], curr[0]);
-						// _lines.push(...gf(curr[0]), ...gf(bottom[x][0]));
-						// _lines.push(...gf(c1), ...gf(c2));
-						// _lines.push(...gf(c2), ...gf(curr[3]));
-
-						/* faces.push([curr[0], c1, c2]);
-					 	faces.push([bottom[x + 1][0], c2,c1]); 
-					 	faces.push([bottom[x + 1][0], bottom[x][0], c2 ]);  */
-					}
-
-				}
-
-				if (cnext && curr[0].y != 0 && cnext[0].y != 0) {
-					if (cnext[0].y !== 0) {
-						faces.push([cnext[0], curr[0], curr[2]]);
-						faces.push([curr[0], curr[4], cnext[0]]);
-						lineVec.push([curr[0], cnext[0]]);
-						// _lines.push(...gf(curr[0]), ...gf(cnext[0]));
-						if (bottom && bottom[x + 1] && bottom[x + 1][0].y !== 0) {
-							const c1 = Utils.getVecCenter(cnext[0], bottom[x + 1][0]);
-							const c2 = Utils.getVecCenter(bottom[x + 1][0], curr[0]);
-							const c3 = Utils.getVecCenter(bottom[x + 1][0], bottom[x + 1][0]);
-							// _lines.push(...gf(c1), ...gf(c2));
-
-						  	faces.push([c2, cnext[0],curr[0] ]);
-							faces.push([c2, cnext[0], bottom[x + 1][0]]); 
-						}
-					}
-				}
-
-
-				faces.forEach((elem) => {
-					elem.forEach(e => {
-						_surfaces.push(...gf(e));
-						faceindex.push(_tindex);
-					})
-					_tindex += elem.length;
-				});
-				// _tindex += faces.length; 
-				// console.log(curr)
+				} 
+				
+				faces.forEach((e) => {
+					faceindex.push(_tindex);
+					_surfaces.push(...gf(e));
+				}) 	
+			 	_tindex+=4; 
+				console.log(_tindex)
 			}
 		}
-		lineVec.forEach((elem) => {
-			_lines.push(...gf(elem[0]), ...gf(elem[1]))
-		})
+		
 		// 面
 		const cStart = Utils.getColorArr('rgba(255,0,0,1)');
-		const cEnd = Utils.getColorArr('rgba(225, 225, 225,1)');
+		const cEnd = Utils.getColorArr('rgba(255,212,212,1)');
 		const selectStart = Utils.getColorArr('rgba(44,123,21,1)');
 		const selectEnd = Utils.getColorArr('rgba(123,144,25,1)');
 		const faceGeo = new THREE.BufferGeometry();
-		const glColors = [
-			new THREE.Color('#ff0000'),
-			new THREE.Color('#a78b48'),
-			new THREE.Color('#af1a1a'),
-			new THREE.Color('#15182f'),
-			new THREE.Color('#000000')
-		];
+	 
 		const faceMat = new THREE.ShaderMaterial({
-			defines: {
-				NUM_DISTINCT: glColors.length,
-				NUM_POINT: point.length,
-			},
 			uniforms: {
-				time: {
-					value: 0
-				},
-				animat: {
-					value: 0.1
-				},
-				colorArr: {
-					value: glColors
-				},
-				colorNum: {
-					value: glColors.length
-				},
-				color: {
-					value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1])
-				},
-				colorEnd: {
-					value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1])
-				},
-				selectStart: {
-					value: new THREE.Vector4(...Utils.getValues(selectStart[0]), selectStart[1])
-				},
-				selectEnd: {
-					value: new THREE.Vector4(...Utils.getValues(selectEnd[0]), selectEnd[1])
-				},
-				height: {
-					value: height - height / max * min
-				},
-				select: {
-					value: 1.0
-				},
-				u_lightDirection: {
-					value: new THREE.Vector3(1.0, 0.0, 0.0).normalize()
-				}, // 关照角度
-				u_lightColor: {
-					value: new THREE.Color('#cfcfcf')
-				}, // 光照颜色
-				u_AmbientLight: {
-					value: new THREE.Color('#dddddd')
-				}, // 全局光颜色
-				u_point: { value: point },
-				u_pointVal: { value: pointVals },
-				u_pointColor: {value:new THREE.Color('#ff0000')}
+				time: { value: 0 },
+				animat: { value: 0.1 },
+				color: { value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1]) },
+				colorEnd: { value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1]) },
+				selectStart: { value: new THREE.Vector4(...Utils.getValues(selectStart[0]), selectStart[1]) },
+				selectEnd: { value: new THREE.Vector4(...Utils.getValues(selectEnd[0]), selectEnd[1]) },
+				height: { value: height },
+				select: { value: -1.0 },
+				// ...THREE.UniformsLib.lights
+				u_lightDirection: { value: new THREE.Vector3(1.0, 0.0, 0.0).normalize() }, // 关照角度
+				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
+				u_AmbientLight: { value: new THREE.Color('#dddddd') }, // 全局光颜色
+				// ambientLightColor: { value: }
 			},
 			side: THREE.DoubleSide,
 			// transparent: true,
-			//  depthWrite: false,
+            // depthWrite: false,
 			// lights: true,
-			vertexShader: faceShader.vertexshader,
-			fragmentShader: faceShader.fragmentshader
-		})
+            vertexShader: faceShader.vertexshader,
+            fragmentShader: faceShader.fragmentshader
+		})  
 	
 
 		faceGeo.addAttribute("position", new THREE.Float32BufferAttribute(_surfaces, 3));
 		faceGeo.addAttribute("u_index", new THREE.Float32BufferAttribute(faceindex, 1));
+		console.log(faceGeo)
+		console.log(faceindex)
+		faceGeo.computeVertexNormals();
 		const face = new THREE.Mesh(faceGeo, faceMat);
-		// faceGeo.computeVertexNormals();
 		face._isAnimate = false;
 		thm.faceMesh1 = face;
 		rayMeshs.push(face);
 		face.name = 'face';
-		face.renderOrder = 99;
 		group.add(face)
 		// line
 		const lineGeo = new THREE.BufferGeometry();
 		lineGeo.addAttribute("position", new THREE.Float32BufferAttribute(_lines, 3));	
 		const lineMat = new THREE.LineBasicMaterial( {
 			color: 0xffffff,
-		 	depthWrite: false,
-			// depthTest: false,
-			opacity: 0.2,
+			depthWrite: false,
+			opacity: 0.3,
 			transparent: true
 		} );
 		const line = new THREE.LineSegments( lineGeo, lineMat );
-		line.scale.y = 1;
+		line.scale.y = 0.1;
 		thm.linesMesh = line;
 		group.add(line);
 
@@ -826,17 +610,16 @@ var swiperInitialize = function () {
 		thm.updateFaceAnimate(true)
 		return group
 	};
-	thm.updateFaceData = (data, opts) => {
-		// 更新数据 进行shader动画 
-		const _data = getFaceParms(data, opts); 
-		 
-		thm.faceMesh1.geometry.addAttribute("position", new THREE.Float32BufferAttribute(_data.position, 3));
-		thm.faceMesh1.geometry.addAttribute("u_index", new THREE.Float32BufferAttribute(_data.faceindex, 1));
-		thm.linesMesh.geometry.addAttribute("position", new THREE.Float32BufferAttribute(_data.line, 3));
-		thm.faceMesh1.geometry.computeVertexNormals(); 
-		
-	}
 	thm.updateFaceAnimate= (state)=> {
+		/* 	setTimeout(() => {
+		
+			let t = setInterval(() => {
+				if (faceMat.uniforms.animat.value >= 1) {
+				clearInterval(t)
+				return false}
+				faceMat.uniforms.animat.value+=0.01;
+			}, 10);
+		}, 5000); */
 		if(state == true) {
 			thm.faceMesh1.material.uniforms.animat.value = 0;
 			thm.faceMesh1._isAnimate = 1;
@@ -845,71 +628,185 @@ var swiperInitialize = function () {
 			thm.faceMesh1._isAnimate = 2;
 		}
 	}
-	function createPoint(data, opts, ydata)  {
-		const { baseHeight = 0 } = opts;
+	function createPlane1(data, opts) {
+		const group = new THREE.Group();
+		const { max } = opts;
+		
+		const _surfaces = [];
+		const _lines = [];
+		for (let i = 0; i < data.length; i++) {
+			const x = data[i];
+			for (let _i = 0; _i < x.length; _i++) {
+				const y = x[_i];
+				if (data[i + 1] && x[_i + 1] && data[i][_i + 1]) {
+					// 面
+					const _c = Utils.getValues(y); // 当前
+					const _cnext =  x[_i + 1]; // 当前行 下一个
+					const _ccnext = data[i + 1][_i]; // 下一列的当前索引
+					const _crnext = data[i + 1][_i + 1]; // 下一列的下一个
+					
+					// 点
+					const v = y.clone();
+					// const t = v.clone().sub(_cnext)
+					// v.add(t)
+					const rotateNum = 10;
+
+					
+
+					const l = 0.5;
+					const d1 = v.clone().lerp(_cnext, l); // 右边
+					const d2 = v.clone().lerp(_cnext, -l); // 左
+					const d3 = v.clone().lerp(_ccnext, l); // 下
+					const d4 = v.clone().lerp(_ccnext, -l);  // 上
+					d1.y = 0;
+					d2.y = 0;
+					d3.y = 0;
+					d4.y = 0;
+
+					const _angleOne = Math.PI * 2 / rotateNum;
+					const arr = [];
+					for (let n = 0; n < rotateNum; n++) {
+						const center = new THREE.Vector2(v.x, v.z);
+						const around = new THREE.Vector2(d1.x, d1.z);
+						 
+						const dst = around.clone().rotateAround(center.clone(), _angleOne * n);
+						const p1 = new THREE.Vector3(dst.x, 0, dst.y);
+						arr.push(p1);
+					}
+					
+					const face = [];
+					for (let i=0;i<arr.length;i++){
+						_lines.push(...Utils.getValues(arr[i]), ...Utils.getValues(v));
+						_surfaces.push(...Utils.getValues(arr[i]), ...Utils.getValues(v))
+						if (arr[i+1]) {
+							_lines.push(...Utils.getValues(arr[i]), ...Utils.getValues(arr[i + 1]));
+							_surfaces.push(...Utils.getValues(arr[i + 1]))
+						} else {
+							_lines.push(...Utils.getValues(arr[i]), ...Utils.getValues(arr[0]));
+							_surfaces.push(...Utils.getValues(arr[0]))
+						}
+					}
+
+					/* const _v = Utils.getValues(v);
+					const _d1 = Utils.getValues(d1);
+					const _d2 = Utils.getValues(d2);
+					const _d3 = Utils.getValues(d3);
+					const _d4 = Utils.getValues(d4); 
+					if (v.y != 0) {
+						_surfaces.push(..._d2, ..._d4, ..._v);
+						_surfaces.push(..._d2, ..._d3, ..._v);
+						_surfaces.push(..._d1, ..._d4, ..._v);
+						_surfaces.push(..._d1, ..._d3, ..._v); 
+					}
+ 		  			//线
+				  	_lines.push(..._v, ..._d1);
+				  	_lines.push(..._v, ..._d2);
+				  	_lines.push(..._v, ..._d3);
+				  	_lines.push(..._v, ..._d4);
+				  	_lines.push(..._d1, ..._d3);
+				  	_lines.push(..._d3, ..._d2);
+				  	_lines.push(..._d2, ..._d4);
+				  	_lines.push(..._d4, ..._d1); */
+				  	/* _lines.push(..._c, ..._cnext);
+					_lines.push(..._c, ..._ccnext);
+					_lines.push(..._ccnext, ..._crnext);   */
+				}
+			}
+		}
+		// 面
+		const cStart = Utils.getColorArr('rgba(255,0,0,1)');
+		const cEnd = Utils.getColorArr('rgba(255,212,212,1)');
+		const faceGeo = new THREE.BufferGeometry();
+		
+		const faceMat = new THREE.ShaderMaterial({
+			uniforms: {
+				time: { value: 0 },
+				animat: { value: 1 },
+				color: { value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1]) },
+				colorEnd: { value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1]) },
+				height: { value: max },
+				// ...THREE.UniformsLib.lights
+				u_lightDirection: { value: new THREE.Vector3(1.0, 1.0, 0.5).normalize() }, // 关照角度
+				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
+				u_AmbientLight: { value: new THREE.Color('#eeeeee') }, // 全局光颜色
+				// ambientLightColor: { value: }
+			},
+			side: THREE.DoubleSide,
+			transparent: true,
+            // depthWrite: false,
+			// lights: true,
+            vertexShader: faceShader.vertexshader,
+            fragmentShader: faceShader.fragmentshader
+		})  
+		 
+		
+		faceGeo.addAttribute("position", new THREE.Float32BufferAttribute(_surfaces, 3));
+		// faceGeo.computeVertexNormals();
+		const face = new THREE.Mesh(faceGeo, faceMat);
+		thm.faceMesh = face
+		group.add(face)
+
+		// line
+		const lineGeo = new THREE.BufferGeometry();
+		lineGeo.addAttribute("position", new THREE.Float32BufferAttribute(_lines, 3));	
+		const lineMat = new THREE.LineBasicMaterial( {
+			color: 0xffffff,
+			depthWrite: false,
+			opacity: 0.9,
+			transparent: true
+		} );
+		const line = new THREE.LineSegments( lineGeo, lineMat );
+		group.add(line);
+
+
+		return group
+	};
+	function createPoint(data, opts, ydata) {
+		const group = new THREE.Group();
 		const position = [];
 		const indexs = [];
 		const size = 10;
-		const delay = opts.delay;
-		// const nums = [];
+		const nums = [];
 		const times = [];
-		const baseData = [];
-		const sizes = [];
-		const spriteTime = [];
-		const spriteSize = [];
-		let min = ydata[0][0];
-		let max = ydata[0][0];
-		
-		ydata.forEach((elem) => {
-			elem.forEach((n) => {
-				min = n < min ? n : min;
-				max = n > max ? n : max;
-			})
-		})
-		 
-		data.forEach((elem, _x) => {
-			elem.forEach((_elem, _y) => {
+		data.forEach((elem) => {
+			elem.forEach((_elem) => {
 				const vec = _elem.clone();
-				vec.y += baseHeight;
-				if (vec.y == 0) return false;
-				const n = Math.random() + delay * Math.random();
-				const _size = ydata[_x][_y] / max * (pointMax - 4) + 4;
-				spriteTime.push(n);
-				spriteSize.push(_size);
-				for (let i = 0; i < 10; i++) {
+				if (vec.y ==0 )return false;
+				const n = Math.random() * 2;
+				for(let i=0;i<10;i++) {
 					position.push(...Utils.getValues(vec));
+					 
 					indexs.push(i);
-					baseData.push(ydata[_x][_y]);
-					times.push(n);
-					sizes.push(_size);
+					nums.push(vec.y , vec.y + 40);
+					times.push(n)
 				}
+				// position.push(...Utils.getValues(_elem));
+				// position.push(...Utils.getValues(_elem));
+				// position.push(...Utils.getValues(_elem));
+
+				// indexs.push(1);
+				// indexs.push(2);
+				// indexs.push(3);
 			})
 		})
-		
 		const pointGeo = new THREE.BufferGeometry();
 		pointGeo.addAttribute("position", new THREE.Float32BufferAttribute(position, 3));
 		pointGeo.addAttribute("u_index", new THREE.Float32BufferAttribute(indexs, 1));
+		pointGeo.addAttribute("u_nums", new THREE.Float32BufferAttribute(nums, 2));
 		pointGeo.addAttribute("u_time", new THREE.Float32BufferAttribute(times, 1));
-		pointGeo.addAttribute("u_data", new THREE.Float32BufferAttribute(baseData, 1));
-		pointGeo.addAttribute("a_sizes", new THREE.Float32BufferAttribute(sizes, 1));
 		const texture = new THREE.TextureLoader().load('./images/p3.png');
-		const nums = new THREE.Vector2(threshold.low, threshold.hight);
 		var pMat = new THREE.ShaderMaterial({
 			uniforms: {
 				y_time:{ value:0 },
-				dst_time: { value:  -2.0},
 				time:{ value:0 },
-				size:{ value: size },
+				size:{ value:size },
 				color:{ value:new THREE.Color('#ffffff') },
 				texture: {
                     value: texture, 
                 },
-				high: { value: opts.highColor },
-				center: { value: opts.centerColor },
-				bottom: { value: opts.lowColor },
-				u_nums: { value: nums},
-				delay: { value: delay },
-				height: { value: height }
+				high: { value:new THREE.Color('#ff0707') },
+				center: { value:new THREE.Color('#ffffff') },
+				bottom: { value:new THREE.Color('#00bcd4') },
 				// num: {value: new THREE.Vector2()}
 			},
 			transparent:true,
@@ -920,137 +817,7 @@ var swiperInitialize = function () {
 		});
 		var starField = new THREE.Points(pointGeo, pMat);
 		starField.renderOrder = 99;
-		starField.userData = {
-			max, min,
-			dtime: spriteTime,
-			sizes: spriteSize
-		}
 		return starField
-	}
-	function createPointSprite(data, opts, ydata)  {
-		const group = new THREE.Group();
-		const { baseHeight = 0, dtime, sizes } = opts;
-		let min = ydata[0][0];
-		let max = ydata[0][0]; 
-		ydata.forEach((elem, i) => {
-			elem.forEach((n, _i) => {
-				min = n < min ? n : min;
-				max = n > max ? n : max;
-				const map = createText({
-					text: String(n.toFixed(2)),
-					fontSize: 12,
-					width: 64,
-					height: 16
-				});
-				const w = map.image.width / 4;
-				const h = map.image.height / 4;
-				var spriteMaterial = new THREE.SpriteMaterial({
-					map: map,
-					color: 0xffffff,
-					transparent: true,
-					depthWrite: false,
-					opacity: 0.3
-				});
-
-				var sprite = new THREE.Sprite(spriteMaterial);
-				sprite.scale.set(w, h, 1)
-				sprite.position.copy(data[i][_i]); 
-				sprite.position.y += baseHeight;
-				sprite.position.x -= 12;
-				sprite.userData.position = sprite.position.clone();
-				sprite.userData.y = data[i][_i].y;
-				sprite._time = 0;
-				sprite._isWave = false;
-				group.add(sprite);
-				 
-			})
-		});
-		group.userData.dtime = dtime;
-		group.userData.sizes = sizes;
-		group.renderOrder = 101;
-		return group;
-	}
-	function createThreshold(obj, opts) {
-		const { max, min, baseHeight} = opts;
-		const baseH = height / max;
-		const group = new THREE.Group();
-		const original = new THREE.Vector3(-width / 2, 0, -zwidth / 2);
-
-		const hcolor = opts.highColor;
-		const lcolor = opts.lowColor;
-
-		const h1 = original.clone() 
-	 	h1.y =  obj.hight * baseH + baseHeight;
-	 	const h2 = h1.clone();
-		h2.x += width;
-
-		const l1 = original.clone() 
-	 	l1.y =  obj.low * baseH + baseHeight;
-	 	const l2 = l1.clone();
-		l2.x += width;
-
-		const lineGeo = new THREE.BufferGeometry();
-
-		 
-		const position = [];
-		const color = [];
-	
-		position.push(h1.x, h1.y, h1.z);
-		position.push(h2.x, h2.y, h2.z);
-		color.push(hcolor.r, hcolor.g, hcolor.b);
-		color.push(hcolor.r, hcolor.g, hcolor.b);
-	 
-		position.push(l1.x, l1.y, l1.z);
-		position.push(l2.x, l2.y, l2.z);
-		color.push(lcolor.r, lcolor.g, lcolor.b);
-		color.push(lcolor.r, lcolor.g, lcolor.b);
-
-		
-		
-		lineGeo.addAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-		lineGeo.addAttribute("color", new THREE.Float32BufferAttribute(color, 3));
-
-		var material = new THREE.ShaderMaterial({
-			uniforms: {
-				u_opacity: { value : 0.4}
-			},
-			transparent: true,
-			vertexShader: lineShader.vertexshader,
-            fragmentShader: lineShader.fragmentshader
-		})
-
-		var line = new THREE.LineSegments(lineGeo, material);
-		group.add(line);
-
-	
-		// 增加两个面
-		var geometry = new THREE.PlaneBufferGeometry(width, zwidth, 32);
-		var material = new THREE.MeshBasicMaterial({
-			color: hcolor,
-			// side: THREE.DoubleSide,
-			depthWrite: false,
-			transparent: true,
-			opacity: 0.05
-		});
-		var mesh = new THREE.Mesh(geometry, material);
-		mesh.rotation.x =-Math.PI/2;
-		mesh.position.y = h1.y;
-		group.add(mesh);
-
-		var geometry = new THREE.PlaneBufferGeometry(width, zwidth, 32);
-		var material = new THREE.MeshBasicMaterial({
-			color: lcolor,
-			// side: THREE.DoubleSide,
-			transparent: true,
-			depthWrite: false,
-			opacity: 0.05
-		});
-		var mesh = new THREE.Mesh(geometry, material);
-		group.add(mesh);
-		mesh.position.y = l2.y;
-		mesh.rotation.x =-Math.PI/2;
-
-		return group;
 	}
 	thm.setColor = (name, val) => {
 		switch(name) {
@@ -1058,21 +825,14 @@ var swiperInitialize = function () {
 			{
 				const colorArr = Utils.getColorArr(val);
 				 
-				// thm.faceMesh.material.uniforms.color.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
+				thm.faceMesh.material.uniforms.color.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
 				thm.faceMesh1.material.uniforms.color.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
-			}
-			case 'colorArr':
-			{
-				const colorArr = val.map(x=> new THREE.Color(x));
-				 
-				// thm.faceMesh.material.uniforms.color.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
-				thm.faceMesh1.material.uniforms.colorArr.value = colorArr;
 			}
 			break;
 			case 'colorEnd':
 			{
 				const colorArr = Utils.getColorArr(val);
-				// thm.faceMesh.material.uniforms.colorEnd.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
+				thm.faceMesh.material.uniforms.colorEnd.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
 				thm.faceMesh1.material.uniforms.colorEnd.value = new THREE.Vector4(...Utils.getValues(colorArr[0]), colorArr[1])
 			}
 			break;
@@ -1086,20 +846,6 @@ var swiperInitialize = function () {
 			case 'pointSize':
 			{ 
 				thm.pointMesh.material.uniforms.size.value = val; 
-			}break; 
-			case 'pointColor':
-			{ 
-
-				thm.faceMesh1.material.uniforms.u_pointColor.value = Utils.getColorArr(val)[0]; 
-			}break; 
-			case 'pointColor1':
-			{ 
-
-				thm.pointMesh.material.uniforms.high.value = Utils.getColorArr(val)[0]; 
-			}break; 
-			case 'pointColor2':
-			{ 
-				thm.pointMesh.material.uniforms.bottom.value =  Utils.getColorArr(val)[0]; 
 			}
 			break; 
 		}
@@ -1114,6 +860,7 @@ var swiperInitialize = function () {
 			});
 			const w = map.image.width / 4;
 			const h = map.image.height / 4;
+			 
 			const geometry = new THREE.PlaneGeometry( w, h, 1 );
 			const material = new THREE.MeshBasicMaterial( {
 				color: 0xffffff, 
@@ -1125,14 +872,12 @@ var swiperInitialize = function () {
 			if (site === 'left') {
 				_vec.x -= w / 2 + 10; 
 				plane.position.copy(_vec);
-				plane.rotation.x = Math.PI/2
-				plane.rotation.y = Math.PI 
-				
+				 plane.rotation.x -=Math.PI/2
 			} else {
 				_vec.z -= h / 2 + w/2;
 				plane.position.copy(_vec);
 				plane.rotation.x = -Math.PI / 2
-				plane.rotation.z = -Math.PI / 2
+				plane.rotation.z = Math.PI / 2
 			 
 			}
 			//
@@ -1142,10 +887,10 @@ var swiperInitialize = function () {
 	}
 	// 生成文字标签纹理
 	function createText(opts) {
-		let { text, fontSize, width, height } = opts;
+		const { text, fontSize } = opts;
 		const textLen = text.length;
-		width = width || (fontSize + 2) * textLen;
-		height = height || fontSize + 10;
+		const width = (fontSize + 2) * textLen;
+		const height = fontSize + 10;
 		const canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;
@@ -1195,81 +940,40 @@ var swiperInitialize = function () {
 		const line = new THREE.Line( lineGeo, lineMat );
 
 		group.add(plane, line);
-
-
 		return group;
 	}
 
 	/* 结束 */
 	let time = 0.0
 	function animation(dt) {
-		if (dt > 1) return false;
+		if (thm.faceMesh) {
+			if (thm.faceMesh._isAnimte) {
+			
+			}
+		}
 		if (thm.faceMesh1) {
 			if (thm.faceMesh1._isAnimate == 1) {
-				thm.faceMesh1.material.uniforms.animat.value += dt;
+				thm.faceMesh1.material.uniforms.animat.value+=dt;
 				thm.linesMesh.scale.y = thm.faceMesh1.material.uniforms.animat.value;
-				if (thm.faceMesh1.material.uniforms.animat.value >= 1) {
-					thm.linesMesh.scale.y = 1;
+				if (thm.faceMesh1.material.uniforms.animat.value >= 1){
 					thm.faceMesh1.material.uniforms.animat.value = 1;
 					thm.faceMesh1._isAnimate = false;
 				}
 			}
 			if (thm.faceMesh1._isAnimate == 2) {
-				thm.faceMesh1.material.uniforms.animat.value -= dt;
+				thm.faceMesh1.material.uniforms.animat.value-=dt;
 				thm.linesMesh.scale.y = thm.faceMesh1.material.uniforms.animat.value;
-				if (thm.faceMesh1.material.uniforms.animat.value <= 0) {
-					thm.linesMesh.scale.y = 0;
+				if (thm.faceMesh1.material.uniforms.animat.value <=0){
 					thm.faceMesh1.material.uniforms.animat.value = 0;
 					thm.faceMesh1._isAnimate = false;
 				}
 			}
-			thm.faceMesh1.material.uniforms.time.value += dt;
 		}
 		if (thm.pointMesh) {
-			const t = dt * 0.2;
-			time += t ;  
-			if ( time >= 1.0) {
-				thm.pointMesh.material.uniforms.time.value = t;
-				thm.pointMesh.material.uniforms.y_time.value = time;
-				const dtime = thm.SpriteMesh.userData.dtime;
-				const sizes = thm.SpriteMesh.userData.sizes;
-				thm.SpriteMesh.children.forEach((child, i) => {
-					const position = child.userData.position.clone();
-					const u_time = dtime[i] || 0;
-					const u_size = sizes[i] || 0;
-					const d_time = -2.0 + time;
-					let end_time = ((d_time + u_time * 5.0) % 4) - 3; 
-					if (end_time <= 0.0) {
-						end_time = 0.0;
-					}
-				 
-					const ty = position.y - end_time * position.y;
-					let y = ty + u_size * u_time;
-					if (d_time < 0.5 || y >  position.y) {
-						y = position.y;
-					}
-					child.position.y = y;
-					if (ty < child.userData.y  && !child._isWave && position.y - y > 2.0) {
-						// console.log(ty, y, position.y)
-						child._isWave = true;
-						child._time = 0;
-					} 
-					if (child._isWave) {
-						child._time += dt;
-						pointVals[i] = child._time;
-						if (child._time > 1) {
-							pointVals[i] = 0;
-							child._isWave = false;
-						}
-					}
-					 
-				})
-				if (thm.faceMesh1) {
-					// console.log(pointVals)
-					thm.faceMesh1.material.uniforms.u_pointVal.value = pointVals;
-				}
-			}
-			
+			const t = dt * 0.3;
+			time += t ;
+			thm.pointMesh.material.uniforms.time.value = t;
+			thm.pointMesh.material.uniforms.y_time.value = time;
 		}
 	}
 	//-
@@ -1301,15 +1005,14 @@ var swiperInitialize = function () {
 		df_Mouse.y = -(event.layerY / df_Height) * 2 + 1;
 		df_Raycaster.setFromCamera(df_Mouse, thm.camera);
 		var intersects = df_Raycaster.intersectObjects(rayMeshs); 
-		if (intersects.length != 0 && event.buttons == 1) { 
-		 	const object = intersects[0].object;
+		if (intersects.length != 0 && event.buttons == 1) {
+			
+			const object = intersects[0].object;
 			if (object.name == 'face') {
 				const i = faceindex[intersects[0].faceIndex];
 				const index = intersects[0].faceIndex;
-				// object.material.uniforms.select.value = index - (index % 4); 
-				// object.material.uniforms.select.value = index * 3;  
-				// console.log(index * 3)
-			} 
+				object.material.uniforms.select.value = index - (index % 4); 
+			}
 		} else {}
 
 	}

@@ -10,7 +10,7 @@
 	<script src="./libs/dat.gui.min.js"></script>
 	<script src="js/assetsControls.js"></script>
 
-	<script src="js/Initializedst.js"></script>
+	<script src="js/wave.js"></script>
 	<script src="js/utils.js"></script>
 	<style type="text/css">
 		html {
@@ -47,7 +47,7 @@
 
 			}, //背景色和透明度
 			camera: {
-				position: [-550, 500, -565]
+				position: [300, 300, 744]
 			}, //相机视角和位置
 			controls: { //控制器
 				enablePan: true,
@@ -81,13 +81,38 @@
 			INT.render();
 
 			$.get('./data/_data.json', {}, function (data) { 
-			
+				/* const chart = INT.createChart(data, {
+					width: 500,
+					zwidth: 500,
+					height: 400,
+					padding: 10
+				});
+				 */
+				// chart.position.y += 400;
+				// INT.scene.add(chart);
 				 
 				let _data = [];
 				const _data1 = [];
 				let max = data[0][2];
 			 	let min = data[0][2];  
-			
+				data.forEach((elem) => {
+				 	elem.forEach(y=>{
+					   
+						/* max = max < y ? y: max;
+						min = y < min ? y: min; */
+					})  
+					/* const index = elem[0];
+					if (_data[index] === undefined) {
+						_data[index] = [];
+						_data1[index] = [];
+					}
+					_data[index][elem[1]] = elem[2];
+					_data1[index][elem[1]] = elem[2];
+					max = max < elem[2] ? elem[2] : max;
+					min = elem[2] < min ? elem[2]: min; */
+					// console.log(elem[2])
+				 
+				});
 				data.forEach((elem) => {
 					elem.forEach(y=>{
 						max = max < y ? y: max;
@@ -97,16 +122,18 @@
 			 	const _data2 = data.map(x=> {
 					const arr = [];
 					x.forEach( y =>{
-						arr.push(y + y *  Math.random() * 0.05)
+						arr.push(y * (2 + Math.random() * 2))
 					})
 					return arr; 	
 				})
-			
- 	   			INT.initChart(data, _data2 , {
+				/* _data.splice(16, 50);
+				_data.forEach(x=>x.splice(16,50))
+				_data1.splice(16, 50);
+				_data1.forEach(x=>x.splice(16,50))  */ 
+ 	   			INT.initChart(data, _data2, {
 					max,
 					min: min,
-					pointHeihgt: 2,
-					threshold: [1200 , 2700],
+					threshold: [4800 , 7000],
 					delay: 3,
 					highColor: new THREE.Color('#ff0707'),
 					centerColor: new THREE.Color('#ffffff'),
@@ -175,90 +202,29 @@
 				max,
 				min
 			}, names);  */
-			const co1 = {
-				color1: '#de3621',
-				color2: '#f58f1c',
-				color3: '#e3b624',
-				color4: '#846b1b',
-				color5: '#1d250d',
-			}
-			const co2 = {
-				color1: '#bb0d0d',
-				color2: '#c07f22',
-				color3: '#c0a346',
-				color4: '#7f7029',
-				color5: '#1c1e0a',
-			}
-			const co3 = {
-				color1: '#ff0000',
-				color2: '#a78b48',
-				color3: '#af1a1a',
-				color4: '#15182f',
-				color5: '#000000',
-			}
-			const co4 = {
-				color1: '#ffc200',
-				color2: '#d45f2e',
-				color3: '#962a4a',
-				color4: '#361441',
-				color5: '#0f0d25',
-			}
 			var isAnimate = false;
 			var gui = new dat.GUI();
 			var parms = {
-				color1: '#de3621',
-				color2: '#f58f1c',
-				color3: '#e3b624',
-				color4: '#846b1b',
-				color5: '#1d250d',
-				pointColor: '#1d250d',
+				color: [255, 0, 0, 1],
 				colorEnd: [228, 228, 228, 1],
-				lineColor: [255, 255, 255, 0.2], 
+				lineColor: [255, 255, 255, 0.2],
+				pointColor1: [255, 255, 255, 0.2],
+				pointColor2: [255, 255, 255, 0.2],
 				size:5,
 				animate: function () {
 					INT.updateFaceAnimate(isAnimate);
 					isAnimate = !isAnimate;
-				},
-				tab1: function () {
-					const _colors = co1;
-					INT.setColor("colorArr", [_colors.color1, _colors.color2, _colors.color3,_colors.color4,_colors.color5])
-				},
-				tab2: function () {
-					const _colors = co2;
-					INT.setColor("colorArr", [_colors.color1, _colors.color2, _colors.color3,_colors.color4,_colors.color5])
-				},
-				tab3: function () {
-					const _colors = co3;
-					INT.setColor("colorArr", [_colors.color1, _colors.color2, _colors.color3,_colors.color4,_colors.color5])
-				},
-			 
-				tab4: function () {
-					const _colors = co4;
-					INT.setColor("colorArr", [_colors.color1, _colors.color2, _colors.color3,_colors.color4,_colors.color5])
 				}
 			}
-			gui.addColor(parms, 'color1').onChange(function (elem) {
-				INT.setColor("colorArr", [parms.color1, parms.color2, parms.color3,parms.color4,parms.color5])
-			}).name('颜色1')
-			gui.addColor(parms, 'color2').onChange(function (elem) {
-				INT.setColor("colorArr", [parms.color1, parms.color2, parms.color3,parms.color4,parms.color5])
-			}).name('颜色2')
-			gui.addColor(parms, 'color3').onChange(function (elem) {
-				INT.setColor("colorArr", [parms.color1, parms.color2, parms.color3,parms.color4,parms.color5])
-			}).name('颜色3')
-			gui.addColor(parms, 'color4').onChange(function (elem) {
-				INT.setColor("colorArr", [parms.color1, parms.color2, parms.color3,parms.color4,parms.color5])
-			}).name('颜色4')
-			gui.addColor(parms, 'color5').onChange(function (elem) {
-				INT.setColor("colorArr", [parms.color1, parms.color2, parms.color3,parms.color4,parms.color5])
-			}).name('颜色5')
-			gui.addColor(parms, 'pointColor').onChange(function (elem) {
-				INT.setColor("pointColor", elem)
-			}).name('滴落颜色')
-			 
-			/* gui.add(parms, 'size', 1, 50, 1).onChange(function (elem) {
+			gui.addColor(parms, 'color').onChange(function (elem) {
+				INT.setColor('color', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			}).name('起始 颜色')
+			gui.addColor(parms, 'colorEnd').onChange(function (elem) {
+				INT.setColor('colorEnd', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			}).name('结束 颜色')
+			gui.add(parms, 'size', 1, 50, 1).onChange(function (elem) {
 				INT.setColor('pointSize', elem)
-			}).name('粒子大小') */
+			}).name('粒子大小')
 			/* gui.addColor(parms, 'pointColor1', 1, 50, 1).onChange(function (elem) {
 				INT.setColor('pointColor1', elem)
 			}).name('粒子颜色 高')
@@ -270,12 +236,7 @@
 						gui.addColor(parms, 'lineColor', 0, 1, 0.01).onChange(function (elem) {
 							INT.setColor('lineColor', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
 						}) */
-			/* gui.add(parms, 'animate').name('动画')
-			gui.add(parms, 'animate').name('动画') */
-			gui.add(parms, 'tab1').name('样式一')
-			gui.add(parms, 'tab2').name('样式二')
-			gui.add(parms, 'tab3').name('样式三')
-			gui.add(parms, 'tab4').name('样式四')
+			gui.add(parms, 'animate').name('动画')
 
 		}
 	</script>

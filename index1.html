@@ -10,7 +10,7 @@
 	<script src="/libs/dat.gui.min.js"></script>
 	<script src="js/assetsControls.js"></script>
 
-	<script src="js/Initializedst.js"></script>
+	<script src="js/Initialize.js"></script>
 	<script src="js/Utils.js"></script>
 	<style type="text/css">
 		html {
@@ -67,22 +67,35 @@
 			INT.render();
 
 			$.get('./data/data.json', {}, function (data) {
-				console.log(data);
 				const chart = INT.createChart(data, {
 					width: 500,
 					zwidth: 500,
 					height: 400,
 					padding: 10
 				});
-				chart.position.y += 200;
-				INT.scene.add(chart);
+				chart.position.y += 400;
+				// INT.scene.add(chart);
+				const _data = [];
+				let max = 0;
+				data.forEach((elem) => {
+					const index = elem[0];
+					if (_data[index] === undefined) {
+						_data[index] = [];
+					}
+					_data[index][elem[1]] = elem[2];
+					max = max < elem[2] ? elem[2] : max;
+
+				}); 
+				INT.initChart(_data, _data, {
+					max,
+					min: 0
+				}, []);
 			})
 
 			let datas = [
 				[],
 				[]
 			];
-			console.log(cdata);
 			// 维度
 			const xdata = [];
 			const names = [...new Set(cdata.map(x => x[0]))].map(x => ({
@@ -137,27 +150,15 @@
 					 nums.push(..._d , ..._r ) */
 
 			})
-			console.log(pointArr)
-			// console.log(planeArr)
-			console.log(nums)
+
 			var max = Math.max.apply(null, nums);
 			var min = Math.min.apply(null, nums);
 			console.log(max)
-			// cdata.forEach((elem, index) => {
-			// 	if (elem[1] == )
-			// });
 
-			/* cdata.forEach((elem, i) => {
-				if (i>=16){return}
-				elem[2] = THREE.Math.randInt(-100, 250);
-				elem[3] = THREE.Math.randInt(0, 450);
-				datas[0].push([elem[0], elem[2]])
-				datas[1].push([elem[1], elem[3]])
-			}); */
-			INT.initChart(planeArr, pointArr, {
+			/* INT.initChart(planeArr, pointArr, {
 				max,
 				min
-			});
+			}, names); */
 			/* console.log(cdata)
 			console.log(datas) */
 			var isAnimate = false;
@@ -166,6 +167,7 @@
 				color: [255, 0, 0, 1],
 				colorEnd: [255, 255, 255, 1],
 				lineColor: [255, 255, 255, 0.2],
+				size: 5,
 				animate: function () {
 					INT.updateFaceAnimate(isAnimate);
 					isAnimate = !isAnimate;
@@ -176,6 +178,9 @@
 			})
 			gui.addColor(parms, 'colorEnd', 0, 1, 0.01).onChange(function (elem) {
 				INT.setColor('colorEnd', `rgba(${elem[0]},${elem[1]},${elem[2]},${elem[3]})`)
+			})
+			gui.add(parms, 'size', 1, 50, 1).onChange(function (elem) {
+				INT.setColor('pointSize', elem)
 			})
 			/* 
 						gui.addColor(parms, 'lineColor', 0, 1, 0.01).onChange(function (elem) {

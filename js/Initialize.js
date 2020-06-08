@@ -198,8 +198,8 @@ var swiperInitialize = function () {
 		thm.renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
 	}
 	// 变量
-	const width = 500;
-	const zwidth = 500;
+	const width = 1200;
+	const zwidth = 1200;
 	const height = 300;
 	const rayMeshs = [];
 	let faceindex = [];
@@ -445,6 +445,7 @@ var swiperInitialize = function () {
 		return Utils.getValues(v3);
 	}
 	function createPlane(data, opts) {
+		
 		const group = new THREE.Group();
 		const { max } = opts;
 		
@@ -566,16 +567,12 @@ var swiperInitialize = function () {
 				selectEnd: { value: new THREE.Vector4(...Utils.getValues(selectEnd[0]), selectEnd[1]) },
 				height: { value: height },
 				select: { value: -1.0 },
-				// ...THREE.UniformsLib.lights
 				u_lightDirection: { value: new THREE.Vector3(1.0, 0.0, 0.0).normalize() }, // 关照角度
 				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
 				u_AmbientLight: { value: new THREE.Color('#dddddd') }, // 全局光颜色
-				// ambientLightColor: { value: }
+				u_points: {value: []}
 			},
 			side: THREE.DoubleSide,
-			// transparent: true,
-            // depthWrite: false,
-			// lights: true,
             vertexShader: faceShader.vertexshader,
             fragmentShader: faceShader.fragmentshader
 		})  
