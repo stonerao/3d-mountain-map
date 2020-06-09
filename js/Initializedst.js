@@ -227,146 +227,12 @@ var swiperInitialize = function () {
 			height:  height * 4
 		});
 		thm.scene.add(floor);
-
-		/* const chart = createChart({
-			width,
-			zwidth,
-			height,
-			padding: 10
-		});
-		thm.scene.add(chart) */;
+ 
 		/*
 		do something
 		*/
 	}
-	/* 业务 */
-	thm.createChart = (data, opts) => {
-		const group = new THREE.Group();
-		const { width, zwidth, height, padding } = opts;
-		const minHeight = 50;
-		const original = new THREE.Vector3(-width/2, 0, -zwidth/2);
-		
-		let max = data[0][2];
-		let min = data[0][2];
-		for (let i = 0; i < data.length - 1; i++) {
-			max = max < data[i+1][2] ? data[i+1][2] : max;
-			min = min > data[i+1][2] ? data[i+1][2] : min;
-		}
-		  
-		const pointGeo = new THREE.BufferGeometry();
-		const _data = [];
-		const _pointVec = [];
-		const _colorVec = [];
-		const _surfaces = [];
-		const _lines = [];
-		data.forEach((elem) => {
-			const index = elem[0];
-			if (_data[index] === undefined) {
-				_data[index] = [];
-			}
-			_data[index][elem[1]] = elem[2];
-		});
-		let maxRow = 10; // 最大列 
-		_data.forEach((x, _xi) => {
-			maxRow = maxRow < x.length ? x.length : maxRow;
-		});
-		// _data.splice(16, _data.length)
-		const maxCol = _data.length; // 最大行
-		var vecData = _data.map((x, _xi) => {
-			const arr = [];
-			x.forEach((y, _yi) => {
-				const row = THREE.Math.lerp(0, width, _yi / maxRow);
-				const col = THREE.Math.lerp(0, zwidth, _xi / maxCol);
-				const _height = THREE.Math.lerp(minHeight, height, (y - min) / max);
-				const vec = new THREE.Vector3(row, _height, col);
-				const _pvec = original.clone().add(vec);
-				_pointVec.push(...Utils.getValues(_pvec));
-				_colorVec.push(1,1,1);
-				arr.push(_pvec);
-			})
-			return arr;
-		}) 
-		for (let i = 0; i < vecData.length; i++) {
-			const x = vecData[i];
-			for (let _i = 0; _i < x.length; _i++) {
-				const y = x[_i];
-				if (vecData[i + 1] && x[_i + 1] && vecData[i][_i + 1]) {
-					// 面
-					const _c = Utils.getValues(y); // 当前
-					const _cnext = Utils.getValues(x[_i + 1]); // 当前行 下一个
-					const _ccnext = Utils.getValues(vecData[i + 1][_i]); // 下一列的当前索引
-					const _crnext = Utils.getValues(vecData[i + 1][_i + 1]); // 下一列的下一个
-					_surfaces.push(..._c, ..._cnext, ..._ccnext);
-					_surfaces.push(..._cnext, ..._crnext,  ..._ccnext);
-					// 线
-					_lines.push(..._c, ..._cnext);
-					_lines.push(..._c, ..._ccnext);
-					_lines.push(..._ccnext, ..._crnext);
-				}
-			}
-		}
-
-
-		const size = 3;
-		pointGeo.addAttribute("position", new THREE.Float32BufferAttribute(_pointVec, 3));
-		pointGeo.addAttribute("color", new THREE.Float32BufferAttribute(_colorVec, 3));
-		var pMat = new THREE.PointsMaterial({
-			color: 0xFFFFFF,
-			size: size
-		});
-		var starField = new THREE.Points(pointGeo, pMat);
-		starField.position.y += size / 4;
-	 	group.add(starField);
-
-		// 面
-		const cStart = Utils.getColorArr('rgba(255,0,0,1)');
-		const cEnd = Utils.getColorArr('rgba(255,255,255,1)');
-		const faceGeo = new THREE.BufferGeometry();
-		
-		const faceMat = new THREE.ShaderMaterial({
-			uniforms: {
-				time: { value: 0 },
-				animat: { value: 1 },
-				color: { value: new THREE.Vector4(...Utils.getValues(cStart[0]), cStart[1]) },
-				colorEnd: { value: new THREE.Vector4(...Utils.getValues(cEnd[0]), cEnd[1]) },
-				height: { value: height },
-				u_lightDirection: { value: new THREE.Vector3(1.0, 1.0, 1.0).normalize() }, // 关照角度
-				u_lightColor: { value: new THREE.Color('#cfcfcf') }, // 光照颜色
-				u_AmbientLight: { value: new THREE.Color('#eeeeee') }, // 全局光颜色
-				
-			},
-			side: THREE.DoubleSide,
-			transparent: true,
-            // depthWrite: false,
-            vertexShader: faceShader.vertexshader,
-            fragmentShader: faceShader.fragmentshader
-		})
-		 
-		faceGeo.addAttribute("position", new THREE.Float32BufferAttribute(_surfaces, 3));
-		const face = new THREE.Mesh(faceGeo, faceMat);
-		thm.faceMesh = face;
-		thm.faceMesh._isAnimte = false;
-		group.add(face);
-
-
-		// 线
-		const lineGeo = new THREE.BufferGeometry();
-		lineGeo.addAttribute("position", new THREE.Float32BufferAttribute(_lines, 3));	
-		const lineMat = new THREE.LineBasicMaterial( {
-			color: 0xffffff,
-			depthWrite: false,
-			opacity: 0.2,
-			transparent: true
-		} );
-		const line = new THREE.LineSegments( lineGeo, lineMat );
-		thm.lineMesh = line;
-		// thm.lineMesh.position.y += 0.2
-		group.add(line);
-
-
-		return group;
-	}
-
+	// 创建
 	thm.initChart = (plane, points, opts, axios) => {
 		const { max, min } = opts;
 		const _planeVec = getData(plane, opts);
@@ -460,28 +326,7 @@ var swiperInitialize = function () {
 			}
 		});
 		return position;
-	}
-	function diffData(data, len, index) {
-		let max = 0;
-		let min = 0;
-		for (let i = 0; i < data.length - 1; i++) {
-			max = max < data[i+1][1] ? data[i+1][1] : max;
-			min = min > data[i+1][1] ? data[i+1][1] : min;
-		}
-		const z = THREE.Math.lerp(0, zwidth, index / len);
-		const xlen = data.length;
-		const _data = data.map((elem, i) => {
-			// const value = 
-			const val = THREE.Math.smoothstep(elem[1], 0, max) * height;
-			return {
-				val: [elem[0], elem[1]],
-				y: val,
-				z: z,
-				x: THREE.Math.lerp(0, width, i / xlen)
-			};
-		})
-		return _data;
-	}
+	} 
 	function gf (v3) {
 		return Utils.getValues(v3);
 	}

@@ -105,6 +105,7 @@ var faceShader = {
         varying vec3 v_normal;
         varying float _y;
         varying vec3 va_position;
+        float PI = 3.1315926;
         float lerp(float x, float y, float t) {
             return (1.0 - t) * x + t * y;
         }
@@ -143,10 +144,12 @@ var faceShader = {
                 float pointval = u_pointVal[i];
                 float len = getLength(pointVec.x, pointVec.z, va_position.x, va_position.z);
                 if (pointval != 0.0) {
-                    if (len < 10.0 * pointval) {
-                        float r = lerp(u_pointColor.r, dst_color.r, pointval);
-                        float g = lerp(u_pointColor.g, dst_color.g, pointval);
-                        float b = lerp(u_pointColor.b, dst_color.b, pointval); 
+                    float lenVal = 10.0 * pointval;
+                    if (len < lenVal) {
+                        float ln = abs(sin(len / lenVal * PI / 2.0)) * pointval;
+                        float r = lerp(u_pointColor.r, dst_color.r, ln);
+                        float g = lerp(u_pointColor.g, dst_color.g, ln);
+                        float b = lerp(u_pointColor.b, dst_color.b, ln); 
                         dst_color = vec3(r, g, b);
                     }
                 }
